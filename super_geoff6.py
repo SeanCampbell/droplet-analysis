@@ -13,7 +13,7 @@ DEFAULT_FRAME_SKIP = 10
 def parse_videos(filenames: list[str], executable: str, batch_size: int, frame_skip: int) -> None:
     with multiprocessing.Pool(batch_size) as pool:
         results = pool.map_async(
-            subprocess.run, [[executable, f'"{f}"', str(frame_skip)] for f in filenames])
+            subprocess.run, [[executable, f, str(frame_skip)] for f in filenames])
         pool.close()
         pool.join()
     results.get()
