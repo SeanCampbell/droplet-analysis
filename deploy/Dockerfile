@@ -6,6 +6,8 @@ RUN apt-get install -y \
     libgl1-mesa-glx
 
 RUN pip install \
-    opencv-python
+    matplotlib \
+    scikit-image
+    # opencv-python
 
 WORKDIR /app
