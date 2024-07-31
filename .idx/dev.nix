@@ -1,13 +1,71 @@
+# To learn more about how to use Nix to configure your environment
+# see: https://developers.google.com/idx/guides/customize-idx-env
 { pkgs, ... }: {
-    services.docker.enable = true;
-    packages = [
-        pkgs.python311
-        pkgs.python311Packages.pip
+  # Which nixpkgs channel to use.
+  channel = "stable-23.11"; # or "unstable"
+  # Use https://search.nixos.org/packages to find packages
+  packages = [
+    pkgs.python311
+    pkgs.python311Packages.pip
+  ];
+  # Sets environment variables in the workspace
+  env = {};
+  idx = {
+    # Search for the extensions you want on https://open-vsx.org/ and use "publisher.id"
+    extensions = [
+      "ms-toolsai.jupyter"
+      "ms-python.python"
     ];
-    idx = {
-        extensions = [
-            "ms-python.python"
-            "ms-python.debugpy"
-        ];
+    workspace = {
+      # Runs when a workspace is first created with this `dev.nix` file
+      onCreate = {
+        create-venv = ''
+          python -m venv .venv
+          source .venv/bin/activate
+          pip install -r requirements.txt
+        '';
+        # Open editors for the following files by default, if they exist:
+        default.openFiles = [ "main.ipynb" ];
+      };
+      # To run something each time the workspace is (re)started, use the `onStart` hook
     };
+    # Enable previews and customize configuration
+    previews = {};
+  };
 }
+
+
+
+
+# { pkgs, ... }: {
+#     services.docker.enable = true;
+#     packages = [
+#         pkgs.python311
+#         pkgs.python311Packages.pip
+#         pkgs.python311Packages.ipykernel
+#     ];
+#     idx = {
+#         extensions = [
+#             "ms-python.python"
+#             "ms-python.debugpy"
+#             "ms-toolsai"
+#             "ms-toolsai.jupyter"
+#         ];
+#         workspace = {
+#             # Runs when a workspace is first created with this `dev.nix` file
+#             onCreate = {
+#                 create-venv = ''
+#                     python -m venv .venv
+#                     source .venv/bin/activate
+#                     pip install ipykernel pip
+#                     pip install -r deploy/requirements.txt
+#                 '';
+#                 # create-docker = ''
+#                 #     docker build deploy/ -t droplet-analysis
+#                 #     docker run -v ~/droplet-analysis:/app -it droplet-analysis bash
+#                 # '';
+#             };
+#         };
+#     };
+# }
+
