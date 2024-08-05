@@ -1,4 +1,5 @@
 { pkgs, ... }: {
+    channel = "stable-23.11";
     services.docker.enable = true;
     packages = [
         pkgs.python311
@@ -18,12 +19,13 @@
                     python -m venv .venv
                     source .venv/bin/activate
                     pip install -r deploy/requirements.txt
-                '';
+                '';                
                 # create-docker = ''
                 #     docker build deploy/ -t droplet-analysis
                 #     docker run -v ~/droplet-analysis:/app -it droplet-analysis bash
                 # '';
             };
         };
+        previews = {};
     };
 }
