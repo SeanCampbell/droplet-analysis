@@ -12,24 +12,29 @@ from typing import List, Optional, Tuple
 logging.root.setLevel(logging.INFO)
 
 
-IMAGE_PARSE_COUNT = 3
-CIRCLE_OUTLINE_COLOR = (255, 255, 0)
+IMAGE_PARSE_COUNT = 1
+CIRCLE_OUTLINE_COLOR = (0.0, 1.0, 1.0)
 
 
 Image = np.ndarray
 Circle = Tuple[int, int, int]
 
 
-def write_csv(output_filename: str, circles: List[Circle]) -> None:
+def write_csv(output_filename: str, droplet1: Circle, droplet2: Circle) -> None:
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     with open(output_filename, 'w', newline='') as csvfile:
-        fieldnames = ['x', 'y', 'radius']
+        fieldnames = [
+            'Droplet 1 X', 'Droplet 1 Y', 'Droplet 1 Radius',
+            'Droplet 2 X', 'Droplet 2 Y', 'Droplet 2 Radius',
+        ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
-        for (x, y, r) in circles:
-            writer.writerow({'x': x, 'y': y, 'radius': r})
+        writer.writerow({
+            'Droplet 1 X': droplet1[0], 'Droplet 1 Y': droplet1[1], 'Droplet 1 Radius': droplet1[2],
+            'Droplet 2 X': droplet2[0], 'Droplet 2 Y': droplet2[1], 'Droplet 2 Radius': droplet2[2],
+        })
 
 
 def write_processed_frame(img: Image, circles: List[Circle], output_filename: str) -> None:
@@ -48,7 +53,7 @@ def find_circles(img: Image, possible_radii: np.ndarray = np.arange(500, 700, 50
     return cx, cy, radii
 
 
-def draw_circles(img: Image, circles: List[Circle], color: Tuple[float] = (1.0, 0.0, 1.0)) -> Image:
+def draw_circles(img: Image, circles: List[Circle], color: Tuple[float] = CIRCLE_OUTLINE_COLOR) -> Image:
     for center_x, center_y, radius in circles:
         circy, circx = skimage.draw.circle_perimeter(center_y, center_x, radius)
         img[circy, circx] = color
@@ -88,7 +93,7 @@ def process_image(filename: str, input_dir: str = 'data/frames_raw', output_dir:
         img = np.expand_dims(img, axis=-1) * np.ones([len(img), len(img[0]), 3])   
     circles = list(zip(cx, cy, radii))
     write_processed_frame(img, circles, os.path.join(output_dir, filename))
-    write_csv(os.path.join(output_dir, f'{filename.removesuffix(".png")}.csv'), circles)
+    write_csv(os.path.join(output_dir, f'{filename.removesuffix(".png")}.csv'), circles[0], circles[1])
 
 
 def main() -> None:
@@ -97,3 +102,7 @@ def main() -> None:
         logging.info(f"Processing {filename}...")
         process_image(filename)
         logging.info(f"Done processing {filename}.")
+
+
+if __name__ == '__main__':
+    main()
