@@ -5,6 +5,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 import PIL
+from PIL.PngImagePlugin import PngInfo
 import pytesseract
 from skimage.color import rgb2gray
 import skimage.feature
@@ -137,8 +138,17 @@ def write_processed_frame(img: Image, output_filename: str, droplet_data: Drople
     skimage.io.imsave(output_filename, (img_with_circles * 255).astype(np.uint8))
 
 
+def write_metadata_to_image(filename: str, droplet_data: DropletData) -> None:
+    img = PIL.Image.open(filename)
+    metadata = PngInfo()
+    for key, value in droplet_data.__dict__.items():
+        metadata.add_text(key, str(value))
+    img.save(filename, pnginfo=metadata)
+
+
 def write_outputs(img: Image, filename: str, output_dir: str, droplet_data: DropletData) -> None:
     write_processed_frame(img, os.path.join(output_dir, filename), droplet_data)
+    write_metadata_to_image(os.path.join(output_dir, filename), droplet_data)
     write_csv(os.path.join(output_dir, f'{filename.removesuffix(".png")}.csv'), droplet_data)
 
 
