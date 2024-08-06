@@ -2,4 +2,6 @@
 matplotlib
 
 # App
+pillow
+pytesseract
 scikit-image

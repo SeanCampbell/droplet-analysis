@@ -1,13 +1,13 @@
 import csv
-# import cv2
 import logging
 import matplotlib.pyplot as plt
 import numpy as np
 import os
+import PIL
+import pytesseract
 import skimage.feature
 import skimage.io
 from typing import List, Optional, Tuple
-
 
 logging.root.setLevel(logging.INFO)
 
@@ -20,7 +20,7 @@ Image = np.ndarray
 Circle = Tuple[int, int, int]
 
 
-def write_csv(output_filename: str, droplet1: Circle, droplet2: Circle) -> None:
+def write_csv(output_filename: str, droplet1: Circle, droplet2: Circle, live_time: float) -> None:
     output_dir = os.path.dirname(output_filename)
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -28,12 +28,14 @@ def write_csv(output_filename: str, droplet1: Circle, droplet2: Circle) -> None:
         fieldnames = [
             'Droplet 1 X', 'Droplet 1 Y', 'Droplet 1 Radius',
             'Droplet 2 X', 'Droplet 2 Y', 'Droplet 2 Radius',
+            'Live Time',
         ]
         writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
         writer.writeheader()
         writer.writerow({
             'Droplet 1 X': droplet1[0], 'Droplet 1 Y': droplet1[1], 'Droplet 1 Radius': droplet1[2],
             'Droplet 2 X': droplet2[0], 'Droplet 2 Y': droplet2[1], 'Droplet 2 Radius': droplet2[2],
+            'Live Time': live_time,
         })
 
 
@@ -79,6 +81,29 @@ def prep(img: Image) -> Image:
     return img
 
 
+def find_live_time_in_image(img: Image) -> float:
+    img = PIL.Image.fromarray(np.uint8(img) * 255)
+    try:
+        image_text = pytesseract.image_to_string(img)
+    except pytesseract.TesseractNotFoundError as e:
+        logging.error('Tesseract not found, returning 0 instead: %s', e)
+        return 0
+    logging.info('Found text: %s', image_text)
+    lines = [v.split(':', 1) for v in image_text.split('\n')]
+    live_time_dict = dict([(v[0], v[1].strip()) for v in lines if len(v) == 2])
+    if not 'Live Time' in live_time_dict:
+        logging.warning('Could not find Live Time in text. Keys: %s',
+            live_time_dict.keys())
+        return -1
+    live_time = live_time_dict['Live Time']
+    live_time_segments = live_time.split('.')[0].split(':')
+    live_time_seconds = (
+        int(live_time_segments[0]) * 3600 +
+        int(live_time_segments[1]) * 60 +
+        int(live_time_segments[2]))
+    return live_time_seconds
+
+
 def process_image(filename: str, input_dir: str = 'data/frames_raw', output_dir: str = 'data/frames_processed') -> None:
     img = skimage.io.imread(os.path.join(input_dir, filename))
     img = edges_image(img)
@@ -92,8 +117,9 @@ def process_image(filename: str, input_dir: str = 'data/frames_raw', output_dir:
     if len(img.shape) == 2:
         img = np.expand_dims(img, axis=-1) * np.ones([len(img), len(img[0]), 3])   
     circles = list(zip(cx, cy, radii))
+    live_time = find_live_time_in_image(img)
     write_processed_frame(img, circles, os.path.join(output_dir, filename))
-    write_csv(os.path.join(output_dir, f'{filename.removesuffix(".png")}.csv'), circles[0], circles[1])
+    write_csv(os.path.join(output_dir, f'{filename.removesuffix(".png")}.csv'), circles[0], circles[1], live_time)
 
 
 def main() -> None:
